@@ -1,7 +1,9 @@
 package com.bit.boardappbackend.kafka.consumer;
 
 
+import com.bit.boardappbackend.common.ConvertUtils;
 import com.bit.boardappbackend.dto.RoomChatDto;
+import com.bit.boardappbackend.dto.RoomMemberDto;
 import com.bit.boardappbackend.entity.ChatAlarm;
 import com.bit.boardappbackend.entity.RoomChat;
 import com.bit.boardappbackend.entity.RoomMember;
@@ -29,8 +31,8 @@ public class ChatConsumer {
     private final RoomChatRepository roomChatRepository;
     private  final ChatAlarmRepository chatAlarmRepository;
 
-    private final RedisTemplate<String, RoomChatDto> redisTemplate;
 
+    private final RedisTemplate<String, RoomChatDto> redisTemplate;
     //socket으로 보내기
     @KafkaListener(topics = "chat-topic", groupId = "chat_id")
     public void sendMessage(String message) {

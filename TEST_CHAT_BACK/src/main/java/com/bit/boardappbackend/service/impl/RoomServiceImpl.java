@@ -150,11 +150,9 @@ public class RoomServiceImpl implements RoomService {
         kafkaTemplate.send("audio-topic" ,"%s:join_audio:%s".formatted(roomId, userId));
         //연결할 목록 땡겨오기
         List<RoomMember> roomMembers = roomMemberRepository.findByRoomId(roomId);
-        List<RoomMemberDto> audioMembers = roomMembers.stream()
+        return roomMembers.stream()
                 .filter(RoomMember::getIsActive)
                 .map(RoomMember::toDto).toList();
-
-        return audioMembers;
     }
 
 

@@ -2,13 +2,13 @@ import React, { useEffect, useRef } from 'react';
 import SockJS from 'sockjs-client';
 import Stomp from 'stompjs';
 
-const CHUNK_SIZE = 35550; // Set the maximum chunk size (adjust as needed)
+const CHUNK_SIZE = 16304; // Set the maximum chunk size (adjust as needed)
 
 const Login = () => {
     const stompClientRef = useRef(null);
     const audioElementRef = useRef(null);
     const roomId = 1;
-    const userId = 1 + Math.ceil(Math.random() * 99);
+    const userId = 1 //+ Math.ceil(Math.random() * 99);
     
     useEffect(() => {
         const socket = new SockJS('http://localhost:9090/ws');
@@ -58,32 +58,28 @@ const Login = () => {
     };
 
     const sendChunks = (audioData) => {
+        const audioBlob = new Blob([audioData], { type: 'audio/opus' });
+        console.log(audioBlob)
         const stompClient = stompClientRef.current;
-    
+        const totalChunks = Math.ceil(audioData.byteLength /  CHUNK_SIZE);
         // Loop to send chunks of the audio data
-        for (let i = 0; i < audioData.length; i += CHUNK_SIZE) {
-            const chunk = audioData.slice(i, i + CHUNK_SIZE);
-            
+        for (let i = 0; i < totalChunks; i ++) {
+            const start = i * CHUNK_SIZE;
+            const end = Math.min(start + CHUNK_SIZE, audioData.byteLength);
+            const chunk = audioData.slice(start, end);
             // Add null octet at the end of the chunk
             const chunkWithNull = new Uint8Array([...chunk], null);
-
-            console.log(chunkWithNull);
-    
-            const destination = `/app/audio-send/${roomId}/${userId}`;
-    
+            const destination = `/app/audio-send/${roomId}/${userId}`;    
             try {
                 if (stompClient && stompClient.connected) {
                     stompClient.send(
                         destination,
                         {
-                            'content-type': 'application/octet-stream',
-                            'content-length': chunkWithNull.length.toString(), // Update content-length header
-                            'userId': userId,
-                            'roomId': roomId,
                             
                         },
                         chunkWithNull
                     );
+                    break
                 } else {
                     throw new Error('WebSocket is not connected.');
                 }

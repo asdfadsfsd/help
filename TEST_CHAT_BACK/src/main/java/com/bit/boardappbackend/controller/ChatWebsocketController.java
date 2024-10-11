@@ -1,5 +1,6 @@
 package com.bit.boardappbackend.controller;
 
+import com.bit.boardappbackend.common.ConvertUtils;
 import com.bit.boardappbackend.dto.*;
 import com.bit.boardappbackend.repository.RoomMemberRepository;
 import com.bit.boardappbackend.service.RoomService;
@@ -7,12 +8,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.messaging.handler.annotation.Header;
-import org.springframework.messaging.handler.annotation.MessageMapping;
-import org.springframework.messaging.handler.annotation.Payload;
-import org.springframework.messaging.handler.annotation.SendTo;
+import org.springframework.messaging.Message;
+import org.springframework.messaging.converter.MessageConversionException;
+import org.springframework.messaging.handler.annotation.*;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -24,12 +25,13 @@ import java.util.Map;
 public class ChatWebsocketController {
 
     private final RoomService roomService;
-
+    private final ConvertUtils convertUtils;
 
 
     @MessageMapping(value = "/join")
-    public void roomJoin(RoomChatDto chat) {
+    public void roomJoin(String chat_data) {
         try{
+            RoomChatDto chat = convertUtils.stringToDto(chat_data,RoomChatDto.class);
             System.out.println("chat");
             System.out.println(chat);
             roomService.joinRoom(chat.getRoomId(), chat.getUserId());
@@ -37,6 +39,8 @@ public class ChatWebsocketController {
             log.error(e.getMessage());
         }
     }
+
+
 
 
     @MessageMapping(value = "/enter")
@@ -49,8 +53,9 @@ public class ChatWebsocketController {
     }
 
     @MessageMapping(value = "/send")
-    public void chattingSend(RoomChatDto chat){
+    public void chattingSend(String chat_data){
         try{
+            RoomChatDto chat = convertUtils.stringToDto(chat_data,RoomChatDto.class);
             roomService.sendMessageToKafka(chat);
         }catch(Exception e){
             log.error(e.getMessage());
@@ -58,8 +63,9 @@ public class ChatWebsocketController {
     }
 
     @MessageMapping(value = "/exit")
-    public void roomExit(RoomChatDto chat){
+    public void roomExit(String chat_data){
         try{
+            RoomChatDto chat = convertUtils.stringToDto(chat_data,RoomChatDto.class);
             roomService.leaveRoom(chat.getRoomId(), chat.getUserId());
         }catch(Exception e){
              log.error(e.getMessage());
@@ -81,22 +87,22 @@ public class ChatWebsocketController {
 
 
     @MessageMapping(value = "/audio-send/{roomId}/{userId}")
-    public void audioSend(@Payload byte[] audioData,
+    public void audioSend( byte[] audioData,
                           @PathVariable("userId") Long userId,
-                          @PathVariable("roomId") Long roomId){
-        System.out.println("132213");
+                          @PathVariable("roomId") Long roomId) {
         RoomChatMediaDto data = RoomChatMediaDto.builder()
                 .message(audioData)
                 .userId(userId)
                 .roomId(roomId)
                 .build();
-        System.out.println("132213");
+        System.out.println("Audio data received and processed");
         roomService.sendAudio(data);
     }
-
     //video 1:n
     @MessageMapping(value = "/video-send")
     public void videoSend(RoomChatMediaDto data){
         roomService.sendVideo(data);
     }
+
+
 }
